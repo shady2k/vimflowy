@@ -237,9 +237,14 @@ export class ClientSocketBackend extends DataBackend {
       this.isConnecting = true;
       await this.connect(host, password, docname);
       this.isConnecting = false;
+    }
+
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      clearTimeout(this.reconnectTimer);
     } else {
       if (!this.reconnectTimer) {
         this.reconnectTimer = setTimeout(() => {
+          clearTimeout(this.reconnectTimer);
           this.reconnect(host, password, docname);
         }, 5000);
       }
