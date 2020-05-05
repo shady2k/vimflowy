@@ -188,7 +188,7 @@ export class ClientSocketBackend extends DataBackend {
       logger.info('Socket connection error! Trying to reconnect...');
       if (!this.reconnectTimer) {
         this.reconnectTimer = setTimeout(async() => {
-          await this.connect(host, password, docname);
+          this.connect(host, password, docname);
         }, 5000);
       }
     };
@@ -197,7 +197,7 @@ export class ClientSocketBackend extends DataBackend {
       logger.info('Socket connection closed! Trying to reconnect...');
       if (!this.reconnectTimer) {
         this.reconnectTimer = setTimeout(async() => {
-          await this.connect(host, password, docname);
+          this.connect(host, password, docname);
         }, 5000);
       }
     };
@@ -205,7 +205,9 @@ export class ClientSocketBackend extends DataBackend {
     await new Promise((resolve, reject) => {
       this.ws.onopen = resolve;
       setTimeout(() => {
-        reject('Timed out trying to connect!');
+        //reject('Timed out trying to connect!');
+        logger.info('Timed out trying to connect! Trying to reconnect...');
+        this.connect(host, password, docname);
       }, 5000);
     });
     logger.info('Connected', host);
