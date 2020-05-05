@@ -173,6 +173,7 @@ export class ClientSocketBackend extends DataBackend {
   // init is like async constructor
   private ws!: WebSocket;
   private clientId: string;
+  private reconnectTimer: any;
 
   constructor() {
     super();
@@ -181,22 +182,24 @@ export class ClientSocketBackend extends DataBackend {
 
   private async connect(host: string, password: string, docname: string) {
     logger.info('Trying to connect', host);
-    let that = this;
     this.ws = new WebSocket(`${host}/socket`);
-    this.ws.onerror = (err) => {
+    this.ws.onerror = () => {
       // throw new Error(`Socket connection error: ${err}`);
-      logger.info(`Socket connection error: ${err}`);
-      logger.info('Trying to reconnect...');
-      setTimeout(async() => {
-        await this.connect(host, password, docname);
-      }, 5000);
+      logger.info('Socket connection error! Trying to reconnect...');
+      if (!this.reconnectTimer) {
+        this.reconnectTimer = setTimeout(async() => {
+          await this.connect(host, password, docname);
+        }, 5000);
+      }
     };
     this.ws.onclose = async () => {
       // throw new Error('Socket connection closed!');
       logger.info('Socket connection closed! Trying to reconnect...');
-      setTimeout(async() => {
-        await that.connect(host, password, docname);
-      }, 5000);
+      if (!this.reconnectTimer) {
+        this.reconnectTimer = setTimeout(async() => {
+          await this.connect(host, password, docname);
+        }, 5000);
+      }
     };
 
     await new Promise((resolve, reject) => {
