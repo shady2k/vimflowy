@@ -186,7 +186,7 @@ export class ClientSocketBackend extends DataBackend {
       // throw new Error(`Socket connection error: ${err}`);
       logger.info('Socket connection error!');
     };
-    this.ws.onclose = async () => {
+    this.ws.onclose = () => {
       // throw new Error('Socket connection closed!');
       logger.info('Socket connection closed! Trying to reconnect...');
       setTimeout(() => {
