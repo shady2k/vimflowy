@@ -205,8 +205,7 @@ export class ClientSocketBackend extends DataBackend {
     await new Promise((resolve, reject) => {
       this.ws.onopen = resolve;
       setTimeout(() => {
-        //reject('Timed out trying to connect!');
-        logger.info('Timed out trying to connect! Trying to reconnect...');
+        reject('Timed out trying to connect! Trying to reconnect...');
         this.connect(host, password, docname);
       }, 5000);
     });
