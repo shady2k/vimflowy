@@ -173,13 +173,10 @@ export class ClientSocketBackend extends DataBackend {
   // init is like async constructor
   private ws!: WebSocket;
   private clientId: string;
-  private reconnectTimer: any;
-  private isConnecting: boolean;
 
   constructor() {
     super();
     this.clientId = Date.now() + '-' + ('' + Math.random()).slice(2);
-    this.isConnecting = false;
   }
 
   private async connect(host: string, password: string, docname: string) {
@@ -187,20 +184,20 @@ export class ClientSocketBackend extends DataBackend {
     this.ws = new WebSocket(`${host}/socket`);
     this.ws.onerror = () => {
       // throw new Error(`Socket connection error: ${err}`);
-      logger.info('Socket connection error! Trying to reconnect...');
-      this.reconnect(host, password, docname);
+      logger.info('Socket connection error!');
     };
     this.ws.onclose = async () => {
       // throw new Error('Socket connection closed!');
       logger.info('Socket connection closed! Trying to reconnect...');
-      this.reconnect(host, password, docname);
+      setTimeout(async() => {
+        this.connect(host, password, docname);
+      }, 5000);
     };
 
     await new Promise((resolve, reject) => {
       this.ws.onopen = resolve;
       setTimeout(() => {
         reject('Timed out trying to connect!');
-        this.reconnect(host, password, docname);
       }, 5000);
     });
     logger.info('Connected', host);
@@ -232,28 +229,9 @@ export class ClientSocketBackend extends DataBackend {
     });
   }
 
-  public async reconnect(host: string, password: string, docname: string) {
-    if ((!this.ws || this.ws.readyState === WebSocket.CLOSED) && !this.isConnecting) {
-      this.isConnecting = true;
-      await this.connect(host, password, docname);
-      this.isConnecting = false;
-    }
-
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      clearTimeout(this.reconnectTimer);
-    } else {
-      if (!this.reconnectTimer) {
-        this.reconnectTimer = setTimeout(() => {
-          clearTimeout(this.reconnectTimer);
-          this.reconnect(host, password, docname);
-        }, 5000);
-      }
-    }
-  }
-
   public async init(host: string, password: string, docname = '') {
     this.events.emit('saved');
-    await this.reconnect(host, password, docname);
+    await this.connect(host, password, docname);
   }
 
   private async sendMessage(message: Object): Promise<string | null> {
