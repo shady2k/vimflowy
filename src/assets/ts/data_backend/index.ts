@@ -186,27 +186,19 @@ export class ClientSocketBackend extends DataBackend {
     this.ws.onerror = () => {
       // throw new Error(`Socket connection error: ${err}`);
       logger.info('Socket connection error! Trying to reconnect...');
-      if (!this.reconnectTimer) {
-        this.reconnectTimer = setTimeout(async() => {
-          this.connect(host, password, docname);
-        }, 5000);
-      }
+      this.reconnect(host, password, docname);
     };
     this.ws.onclose = async () => {
       // throw new Error('Socket connection closed!');
       logger.info('Socket connection closed! Trying to reconnect...');
-      if (!this.reconnectTimer) {
-        this.reconnectTimer = setTimeout(async() => {
-          this.connect(host, password, docname);
-        }, 5000);
-      }
+      this.reconnect(host, password, docname);
     };
 
     await new Promise((resolve, reject) => {
       this.ws.onopen = resolve;
       setTimeout(() => {
-        reject('Timed out trying to connect! Trying to reconnect...');
-        this.connect(host, password, docname);
+        reject('Timed out trying to connect!');
+        this.reconnect(host, password, docname);
       }, 5000);
     });
     logger.info('Connected', host);
@@ -238,9 +230,21 @@ export class ClientSocketBackend extends DataBackend {
     });
   }
 
+  public async reconnect(host: string, password: string, docname: string) {
+    if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
+      await this.connect(host, password, docname);
+    } else {
+      if (!this.reconnectTimer) {
+        this.reconnectTimer = setTimeout(() => {
+          this.reconnect(host, password, docname);
+        }, 5000);
+      }
+    }
+  }
+
   public async init(host: string, password: string, docname = '') {
     this.events.emit('saved');
-    await this.connect(host, password, docname);
+    await this.reconnect(host, password, docname);
   }
 
   private async sendMessage(message: Object): Promise<string | null> {
