@@ -174,10 +174,12 @@ export class ClientSocketBackend extends DataBackend {
   private ws!: WebSocket;
   private clientId: string;
   private reconnectTimer: any;
+  private isConnecting: boolean;
 
   constructor() {
     super();
     this.clientId = Date.now() + '-' + ('' + Math.random()).slice(2);
+    this.isConnecting = false;
   }
 
   private async connect(host: string, password: string, docname: string) {
@@ -232,7 +234,11 @@ export class ClientSocketBackend extends DataBackend {
 
   public async reconnect(host: string, password: string, docname: string) {
     if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
-      await this.connect(host, password, docname);
+      if (!this.isConnecting) {
+        this.isConnecting = true;
+        await this.connect(host, password, docname);
+        this.isConnecting = false;
+      }
     } else {
       if (!this.reconnectTimer) {
         this.reconnectTimer = setTimeout(() => {
