@@ -62,10 +62,16 @@ class DailyNotesPlugin {
 
     this.setLogging();
 
-    this.api.cursor.on('rowChange', async (_oldPath: Path, newPath: Path) => {
-      this.log('rowChange', _oldPath, newPath);
+    this.api.cursor.on('rowChange', async (oldPath: Path, newPath: Path) => {
+      this.log('rowChange', oldPath, newPath);
       this.checkNewDay();
-      this.checkRowTextChanged(_oldPath, newPath);
+      this.checkRowTextChanged(oldPath, newPath);
+
+      const ci = _.findIndex(this.childAddedArr, ce => ce === oldPath.row);
+      if (ci !== -1) {
+        this.childAddedArr.splice(ci, 1);
+        this.addCreatedToday(oldPath.row);
+      }
     });
 
     this.api.registerListener('document', 'childAdded', async ({ row }) => {
@@ -73,14 +79,8 @@ class DailyNotesPlugin {
       this.childAddedArr.push(row);
     });
 
-    this.api.registerListener('document', 'loadRow', async (path, serialized) => {
-      const ci = _.findIndex(this.childAddedArr, ce => ce === path.row);
-      if (ci !== -1) {
-        this.log('loadRow', path, serialized);
-        this.childAddedArr.splice(ci, 1);
-        this.addCreatedToday(path.row);
-      }
-    });
+    /* this.api.registerListener('document', 'loadRow', async (path, serialized) => {
+    }); */
 
     this.api.registerListener('document', 'afterDetach', async (info) => {
       let that = this;
